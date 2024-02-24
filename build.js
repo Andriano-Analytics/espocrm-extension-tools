@@ -406,6 +406,37 @@ function createConfig() {
     fs.writeFileSync(cwd + '/site/data/config.php', configString);
 }
 
+/**
+ * @param {string} file
+ * @return {Promise<void>}
+ */
+function copyFile(file) {
+    return transpile(file).then(() => {
+        const moduleName = extensionParams.module;
+        const mod = helpers.camelCaseToHyphen(moduleName);
+
+        const clientSrcPath = `client/custom/modules/${mod}/src/`;
+
+        if (
+            file.startsWith(clientSrcPath) &&
+            file.endsWith('.js') &&
+            extensionParams.bundled &&
+            fs.existsSync(`${cwd}/build/assets/transpiled/${file.substring(7)}`)
+        ) {
+            fs.copySync(
+                `${cwd}/build/assets/transpiled/${file.substring(7)}`,
+                `${cwd}/site/client/custom/modules/${mod}/lib/transpiled/src/${file.substring(clientSrcPath.length)}`
+            );
+
+            console.log('  Copying transpiled...');
+        }
+
+        console.log('  Copying source...');
+
+        fs.copySync(`${cwd}/src/files/${file}`, `${cwd}/site/${file}`);
+    });
+}
+
 function copyExtension() {
     return transpile().then(() =>
         new Promise(resolve => {
@@ -638,26 +669,41 @@ function buildExtension(hook) {
 }
 
 /**
+ * @param {string} [file]
  * @return {Promise<void>}
  */
-function transpile() {
+function transpile(file) {
     if (!extensionParams.bundled) {
         return Promise.resolve();
     }
 
-    helpers.deleteDirRecursively(cwd + `/build/assets/transpiled/custom`);
+    const mod = helpers.camelCaseToHyphen(extensionParams.module);
 
-    console.log('Transpiling...');
+    if (file && !file.startsWith(`client/custom/modules/${mod}/src/`)) {
+        return Promise.resolve();
+    }
 
-    const moduleNameHyphen = helpers.camelCaseToHyphen(extensionParams.module);
+    if (!file) {
+        helpers.deleteDirRecursively(`${cwd}/build/assets/transpiled/custom`);
+    }
 
-    const transpiler = new Transpiler({
-        path: `src/files/client/custom/modules/${moduleNameHyphen}`,
-        mod: moduleNameHyphen,
+    if (file) {
+       //
+    }
+
+    console.log('  Transpiling...');
+
+    const options = {
+        path: `src/files/client/custom/modules/${mod}`,
+        mod: mod,
         destDir: `build/assets/transpiled/custom`,
-    });
+    };
 
-    transpiler.process();
+    if (file) {
+        options.file = `src/files/${file}`;
+    }
+
+    (new Transpiler(options)).process();
 
     return Promise.resolve();
 }
