@@ -132,6 +132,18 @@ function buildGeneral(options = {}) {
         composerInstall()
         .then(() => console.log('Done'));
     }
+
+    const flags = [
+        ['all', 'build all'],
+        ['extension', 'build extension package'],
+        ['copy', 'copy sources to the `site` directory'],
+        ['rebuild', 'run rebuild'],
+        ['composer-install', 'run `composer install` for the module']
+    ]
+
+    const msg = `\n Available flags:\n\n` + flags.map(it => ` --${it[0]} – ${it[1]};`).join('\n');
+
+    console.log(msg);
 }
 
 export {buildGeneral};
@@ -331,7 +343,7 @@ function install() {
 
         cp.execSync("php install/cli.php -a \"checkPermission\"", {
             cwd: cwd + '/site',
-            stdio: 'ignore',
+            stdio: ['ignore', 'ignore', 'pipe'],
         });
 
         console.log('  Install: saveSettings...');
@@ -347,7 +359,7 @@ function install() {
 
         cp.execSync("php install/cli.php -a \"buildDatabase\"", {
             cwd: cwd + '/site',
-            stdio: 'ignore',
+            stdio: ['ignore', 'ignore', 'pipe'],
         });
 
         console.log('  Install: createUser...');
@@ -372,11 +384,11 @@ function install() {
 function buildEspo() {
     console.log('  Npm install...');
 
-    cp.execSync("npm ci", {cwd: cwd + '/site', stdio: 'ignore'});
+    cp.execSync("npm ci", {cwd: cwd + '/site', stdio: ['ignore', 'ignore', 'pipe']});
 
     console.log('  Building...');
 
-    cp.execSync("grunt", {cwd: cwd + '/site', stdio: 'ignore'});
+    cp.execSync("grunt", {cwd: cwd + '/site', stdio: ['ignore', 'ignore', 'pipe']});
 }
 
 function createConfig() {
@@ -746,7 +758,7 @@ function setOwner() {
                 "chown -R " + config.install.defaultOwner + ":" + config.install.defaultGroup + " .",
                 {
                     cwd: cwd + '/site',
-                    stdio: 'ignore',
+                    stdio: ['ignore', 'ignore', 'pipe'],
                 }
             );
         }
@@ -780,7 +792,7 @@ function internalComposerInstall(modulePath, includeDev) {
         `composer install ${devOption} --ignore-platform-reqs`,
         {
             cwd: modulePath,
-            stdio: 'ignore',
+            stdio: ['ignore', 'ignore', 'pipe'],
         }
     );
 }
