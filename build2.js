@@ -23,10 +23,56 @@ const branch = helpers.getProcessParam('branch');
  * @param {{extensionHook: function()}} [options]
  */
 function buildGeneral(options = {}) {
+    //Single Commands
+    // --update-archive             Download and store the latest version of Espo in the given branch for reuse
+    // --db-reset                   Drop and create the database schema (only the schema, no tables)
+    // --rebuild                    Rebuild Espo's configuration (CLI version of UI->Administration->Rebuild)
+    // --extension                  Build the extension for distribution
+    // --before-install             Run only the beforeInstall process for the extension
+    // --after-install              Run only the afterInstall process for the extension
+    // --composer-install           Run composer install on the Espo installation (including the extension's composer requirements)
+
+    //Compound Commands
+    // --all [--db-reset] [--local] Rebuild from the beginning [with a new database] [from a local archive]
+    // --fetch [--local]            Download and extract the latest version of Espo in the given branch. --local may also be added to use the local archive if it exists
+    // --install                    Reinstall Espo (no extension) using the existing files in /site
+    // --before-to-end              Macro for: beforeInstall, copyExtension, composerInstall, rebuild, afterInstall, setOwner
+    // --copy                       Copy the extension to /site an, set ownership of the files
+    //
+    //Workflows
+    // node build --all [--db-reset] [--local]
+    // node build --fetch --local; node build --install
+    // node build --copy
+    // node build --copy; node build --composer-install
+
+    // Update the local archive for faster installs
+    if (helpers.hasProcessParam('update-archive')) {
+        updateArchive({branch: branch})
+        .then(() => console.log('Done'));
+    }
+
+    // Delete and create the database
+    if (helpers.hasProcessParam('db-reset')) {
+        databaseReset()
+        .then(() => console.log('Done'));
+    }
+
+    // From BeforeInstall to the end
+    if (helpers.hasProcessParam('before-to-end')) {
+        beforeInstall()
+        .then(() => copyExtension())
+        .then(() => composerInstall())
+        .then(() => rebuild())
+        .then(() => afterInstall())
+        .then(() => setOwner())
+        .then(() => console.log('Done'));
+    }
+
     if (helpers.hasProcessParam('all')) {
         fetchEspo({branch: branch})
             .then(() => install())
             .then(() => installExtensions())
+            .then(() => beforeInstall())
             .then(() => copyExtension())
             .then(() => composerInstall())
             .then(() => rebuild())
@@ -87,6 +133,11 @@ function buildGeneral(options = {}) {
         return;
     }
 
+    if (helpers.hasProcessParam('before-install')) {
+        beforeInstall()
+        .then(() => console.log('Done'));
+    }
+
     if (helpers.hasProcessParam('after-install')) {
         afterInstall().then(() => console.log('Done'));
 
@@ -110,24 +161,16 @@ function buildGeneral(options = {}) {
 
         return;
     }
-
-    const flags = [
-        ['all', 'build all'],
-        ['extension', 'build extension package'],
-        ['copy', 'copy sources to the `site` directory'],
-        ['rebuild', 'run rebuild'],
-        ['composer-install', 'run `composer install` for the module']
-    ]
-
-    const msg = `\n Available flags:\n\n` + flags.map(it => ` --${it[0]} – ${it[1]};`).join('\n');
-
-    console.log(msg);
 }
 
 export {buildGeneral};
 
 function fetchEspo(params) {
     params = params || {};
+
+    if (helpers.hasProcessParam("local")) {
+        return fetchEspoLocal(params)
+    }
 
     return new Promise((resolve) => {
         console.log('Fetching EspoCRM repository...');
@@ -649,13 +692,13 @@ function composerInstall() {
     return new Promise(resolve => {
         const moduleName = extensionParams.module;
 
-        internalComposerInstall(cwd + '/site/custom/Espo/Modules/' + moduleName);
+        internalComposerInstall(cwd + '/site/custom/Espo/Modules/' + moduleName, true);
 
         resolve();
     });
 }
 
-function internalComposerInstall(modulePath) {
+function internalComposerInstall(modulePath, includeDev) {
     if (!fs.existsSync(modulePath + '/composer.json')) {
 
         return;
@@ -663,8 +706,10 @@ function internalComposerInstall(modulePath) {
 
     console.log('Running composer install...');
 
+    let devOption = includeDev ? "" : "--no-dev";
+
     cp.execSync(
-        "composer install --no-dev --ignore-platform-reqs",
+        `composer install ${devOption} --ignore-platform-reqs`,
         {
             cwd: modulePath,
             stdio: ['ignore', 'ignore', 'pipe'],
@@ -675,7 +720,7 @@ function internalComposerInstall(modulePath) {
 function internalComposerBuildExtension() {
     const moduleName = extensionParams.module;
 
-    internalComposerInstall(cwd + '/build/tmp/files/custom/Espo/Modules/' + moduleName);
+    internalComposerInstall(cwd + '/build/tmp/files/custom/Espo/Modules/' + moduleName, false);
 
     const removedFileList = [
         'files/custom/Espo/Modules/' + moduleName + '/composer.json',
@@ -687,5 +732,109 @@ function internalComposerBuildExtension() {
         if (fs.existsSync(cwd + '/build/tmp/' + file)) {
             fs.unlinkSync(cwd + '/build/tmp/' + file);
         }
+    });
+}
+
+function updateArchive (params) {
+  params = params || {};
+
+  return new Promise((resolve, fail) => {
+      console.log('Updating the local archive...');
+
+      if (!fs.existsSync(cwd + '/archive')) {
+          fs.mkdirSync(cwd + '/archive');
+      }
+
+      let branch = params.branch || config.espocrm.branch;
+
+      if (fs.existsSync(cwd + './archive/archive-' + branch + '.zip')) {
+          fs.unlinkSync(cwd + './archive/archive-' + branch + '.zip');
+      }
+
+      if (config.espocrm.repository.indexOf('https://github.com') !== 0) {
+        throw new Error('Unexpected URL');
+      }
+
+      let repository = config.espocrm.repository;
+      if (repository.slice(-4) === '.git') {
+          repository = repository.slice(0, repository.length - 4);
+      }
+      if (repository.slice(-1) !== '/') {
+          repository += '/';
+      }
+
+      let archiveUrl = repository + 'archive/' + branch + '.zip';
+      console.log('  Downloading EspoCRM archive from Github...');
+
+      fetch(archiveUrl).then(response => {
+          if (!response.ok) {
+              throw new Error(`Unexpected response ${response.statusText}.`);
+          }
+          return response.body;
+      })
+      .then(body => {
+          const streamPipeline = promisify(pipeline);
+          let path = cwd + '/archive/archive-' + branch + '.zip'
+          console.log('  Download URL: ' + archiveUrl)
+          console.log('  Location: ' + path)
+          return streamPipeline(body, fs.createWriteStream(path));
+      })
+  });
+}
+
+function databaseReset() {
+  const charset = config.database.charset;
+  const dbname = config.database.dbname;
+  const user = config.database.user;
+
+  console.log('Resetting the database...');
+
+  return new Promise(resolve => {
+      cp.execSync(`mysql -u ${user} -e 'DROP DATABASE IF EXISTS \`${dbname}\`'`);
+      cp.execSync(`mysql -u ${user} -e 'CREATE SCHEMA \`${dbname}\` DEFAULT CHARACTER SET ${charset}'`);
+
+      resolve();
+  })
+}
+
+function beforeInstall () {
+    return new Promise(resolve => {
+        console.log('Running before-install script...');
+
+        cp.execSync("php before_install.php", {cwd: cwd + '/php_scripts'});
+
+        resolve();
+    })
+}
+
+function fetchEspoLocal(params) {
+    params = params || {};
+
+    return new Promise((resolve) => {
+        let branch = params.branch || config.espocrm.branch;
+
+        let archivePath = cwd + '/archive/archive-' + branch + '.zip';
+        if (!fs.existsSync(archivePath)) {
+            console.log("ERROR: Could not locate " + archivePath)
+            fail();
+        }
+
+        console.log('Extracting the existing archive...');
+        console.log('  File: ' + archivePath);
+
+        helpers.deleteDirRecursively(cwd + '/site');
+        if (!fs.existsSync(cwd + '/site')) {
+            fs.mkdirSync(cwd + '/site');
+        }
+
+        const archive = new AdmZip(archivePath);
+        archive.extractAllTo(cwd + '/site', true, true);
+
+        helpers
+            .moveDir(
+                cwd + '/site/espocrm-' + branch.replace('/', '-'),
+                cwd + '/site'
+            )
+            .then(() => resolve());
     });
 }
