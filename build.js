@@ -69,12 +69,26 @@ function buildGeneral(options = {}) {
     }
 
     if (helpers.hasProcessParam('all')) {
+        fetchEspo({branch: branch})
+            .then(() => install())
+            .then(() => installExtensions())
+            .then(() => copyExtension())
+            .then(() => composerInstall())
+            .then(() => rebuild())
+            .then(() => afterInstall())
+            .then(() => setOwner())
+            .then(() => console.log('Done'));
+
+        return;
+    }
+
+    if (helpers.hasProcessParam('all2')) {
         const params = {
           local: helpers.hasProcessParam("local"),
           branch: branch
         }
 
-        fetchEspo(params)
+        fetchEspo2(params)
         .then(() => install())
         .then(() => installExtensions())
         .then(() => beforeInstall())
@@ -97,11 +111,16 @@ function buildGeneral(options = {}) {
     }
 
     if (helpers.hasProcessParam('fetch')) {
+        fetchEspo({branch: branch}).then(() => console.log('Done'));
+
+        return;
+    }
+    if (helpers.hasProcessParam('fetch2')) {
         const params = {
           local: helpers.hasProcessParam("local"),
           branch: branch
         }
-        fetchEspo(params)
+        fetchEspo2(params)
         .then(() => console.log('Done'));
     }
 
@@ -110,7 +129,7 @@ function buildGeneral(options = {}) {
             setOwner().then(() => console.log('Done'));
         });
 
-      return;
+        return;
     }
 
     if (helpers.hasProcessParam('copy-file')) {
