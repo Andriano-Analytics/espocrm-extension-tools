@@ -87,10 +87,13 @@ function buildGeneral(options = {}) {
     }
 
     if (helpers.hasProcessParam('install')) {
-        install()
-        .then(() => installExtensions())
-        .then(() => setOwner())
-        .then(() => console.log('Done'));
+        install().then(() => {
+            installExtensions().then(() => {
+                setOwner().then(() => console.log('Done'));
+            });
+        });
+
+        return;
     }
 
     if (helpers.hasProcessParam('fetch')) {
@@ -103,9 +106,9 @@ function buildGeneral(options = {}) {
     }
 
     if (helpers.hasProcessParam('copy')) {
-      copyExtension().then(() => {
-          setOwner().then(() => console.log('Done'));
-      });
+        copyExtension().then(() => {
+            setOwner().then(() => console.log('Done'));
+        });
 
       return;
     }
