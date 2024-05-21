@@ -103,9 +103,37 @@ function buildGeneral(options = {}) {
     }
 
     if (helpers.hasProcessParam('copy')) {
-        copyExtension()
-        .then(() => setOwner())
-        .then(() => console.log('Done'));
+      copyExtension().then(() => {
+          setOwner().then(() => console.log('Done'));
+      });
+
+      return;
+    }
+
+    if (helpers.hasProcessParam('copy-file')) {
+        let file = helpers.getProcessParam('file');
+
+        if (!file) {
+            console.error('No --file parameter specified.');
+
+            return;
+        }
+
+        file = file.replace('\\', '/');
+
+        if (!file.startsWith('src/files')) {
+            console.error('File should be in `src/files` dir.');
+
+            return;
+        }
+
+        const realFile = file.substring(10);
+
+        copyFile(realFile).then(() => {
+            console.log('Done');
+        });
+
+        return;
     }
 
     if (helpers.hasProcessParam('before-install')) {
@@ -114,23 +142,27 @@ function buildGeneral(options = {}) {
     }
 
     if (helpers.hasProcessParam('after-install')) {
-        afterInstall()
-        .then(() => console.log('Done'));
+        afterInstall().then(() => console.log('Done'));
+
+        return;
     }
 
     if (helpers.hasProcessParam('extension')) {
-        buildExtension(options.extensionHook)
-        .then(() => console.log('Done'));
+        buildExtension(options.extensionHook).then(() => console.log('Done'));
+
+        return;
     }
 
     if (helpers.hasProcessParam('rebuild')) {
-        rebuild()
-        .then(() => console.log('Done'));
+        rebuild().then(() => console.log('Done'));
+
+        return;
     }
 
     if (helpers.hasProcessParam('composer-install')) {
-        composerInstall()
-        .then(() => console.log('Done'));
+        composerInstall().then(() => console.log('Done'));
+
+        return;
     }
 
     const flags = [
