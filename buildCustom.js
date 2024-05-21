@@ -22,7 +22,7 @@ const branch = helpers.getProcessParam('branch');
 /**
  * @param {{extensionHook: function()}} [options]
  */
-function buildGeneral(options = {}) {
+function buildGeneralCustom(options = {}) {
     //Single Commands
     // --update-archive             Download and store the latest version of Espo in the given branch for reuse
     // --db-reset                   Drop and create the database schema (only the schema, no tables)
@@ -163,7 +163,7 @@ function buildGeneral(options = {}) {
     }
 }
 
-export {buildGeneral};
+export {buildGeneralCustom};
 
 function fetchEspo(params) {
     params = params || {};
