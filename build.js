@@ -72,6 +72,7 @@ function buildGeneral(options = {}) {
         fetchEspo({branch: branch})
             .then(() => install())
             .then(() => installExtensions())
+            .then(() => beforeInstall())
             .then(() => copyExtension())
             .then(() => composerInstall())
             .then(() => rebuild())
@@ -80,24 +81,6 @@ function buildGeneral(options = {}) {
             .then(() => console.log('Done'));
 
         return;
-    }
-
-    if (helpers.hasProcessParam('all2')) {
-        const params = {
-          local: helpers.hasProcessParam("local"),
-          branch: branch
-        }
-
-        fetchEspo2(params)
-        .then(() => install())
-        .then(() => installExtensions())
-        .then(() => beforeInstall())
-        .then(() => copyExtension())
-        .then(() => composerInstall())
-        .then(() => rebuild())
-        .then(() => afterInstall())
-        .then(() => setOwner())
-        .then(() => console.log('Done'));
     }
 
     if (helpers.hasProcessParam('install')) {
@@ -114,14 +97,6 @@ function buildGeneral(options = {}) {
         fetchEspo({branch: branch}).then(() => console.log('Done'));
 
         return;
-    }
-    if (helpers.hasProcessParam('fetch2')) {
-        const params = {
-          local: helpers.hasProcessParam("local"),
-          branch: branch
-        }
-        fetchEspo2(params)
-        .then(() => console.log('Done'));
     }
 
     if (helpers.hasProcessParam('copy')) {
@@ -186,18 +161,6 @@ function buildGeneral(options = {}) {
 
         return;
     }
-
-    const flags = [
-        ['all', 'build all'],
-        ['extension', 'build extension package'],
-        ['copy', 'copy sources to the `site` directory'],
-        ['rebuild', 'run rebuild'],
-        ['composer-install', 'run `composer install` for the module']
-    ]
-
-    const msg = `\n Available flags:\n\n` + flags.map(it => ` --${it[0]} – ${it[1]};`).join('\n');
-
-    console.log(msg);
 }
 
 export {buildGeneral};
@@ -265,100 +228,107 @@ function databaseReset() {
 }
 
 function fetchEspo(params) {
-    params = params || {useLocal: false};
+    params = params || {};
+
+    if (helpers.hasProcessParam("local")) {
+        return fetchEspoLocal(params)
+    }
 
     return new Promise((resolve) => {
-        if (params.local) {
-            let branch = params.branch || config.espocrm.branch;
+        console.log('Fetching EspoCRM repository...');
 
-            let archivePath = cwd + '/archive/archive-' + branch + '.zip';
-            if (!fs.existsSync(archivePath)) {
-                console.log("ERROR: Could not locate " + archivePath)
-                fail();
-            }
-
-            console.log('Extracting the existing archive...');
-            console.log('  File: ' + archivePath);
-
-            helpers.deleteDirRecursively(cwd + '/site');
-            if (!fs.existsSync(cwd + '/site')) {
-                fs.mkdirSync(cwd + '/site');
-            }
-
-            const archive = new AdmZip(archivePath);
-            archive.extractAllTo(cwd + '/site', true, true);
-
-            helpers
-                .moveDir(
-                    cwd + '/site/espocrm-' + branch.replace('/', '-'),
-                    cwd + '/site'
-                )
-                .then(() => resolve());
-
-        } else {
-            console.log('Fetching EspoCRM repository...');
-
-            if (fs.existsSync(cwd + '/site/archive.zip')) {
-                fs.unlinkSync(cwd + '/site/archive.zip');
-            }
-
-            helpers.deleteDirRecursively(cwd + '/site');
-
-            if (!fs.existsSync(cwd + '/site')) {
-                fs.mkdirSync(cwd + '/site');
-            }
-
-            let branch = params.branch || config.espocrm.branch;
-
-            if (config.espocrm.repository.indexOf('https://github.com') === 0) {
-                let repository = config.espocrm.repository;
-
-                if (repository.slice(-4) === '.git') {
-                    repository = repository.slice(0, repository.length - 4);
-                }
-
-                if (repository.slice(-1) !== '/') {
-                    repository += '/';
-                }
-
-                let archiveUrl = repository + 'archive/' + branch + '.zip';
-
-                console.log('  Downloading EspoCRM archive from Github...');
-
-                fetch(archiveUrl)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`Unexpected response ${response.statusText}.`);
-                        }
-
-                        return response.body;
-                    })
-                    .then(body => {
-                        const streamPipeline = promisify(pipeline);
-
-                        return streamPipeline(body, fs.createWriteStream(cwd + '/site/archive.zip'));
-                    })
-                    .then(() => {
-                        console.log('  Unzipping...');
-
-                        const archive = new AdmZip(cwd + '/site/archive.zip');
-
-                        archive.extractAllTo(cwd + '/site', true, true);
-
-                        fs.unlinkSync(cwd + '/site/archive.zip');
-
-                        helpers
-                            .moveDir(
-                                cwd + '/site/espocrm-' + branch.replace('/', '-'),
-                                cwd + '/site'
-                            )
-                            .then(() => resolve());
-                    });
-            }
-            else {
-                throw new Error();
-            }
+        if (fs.existsSync(cwd + '/site/archive.zip')) {
+            fs.unlinkSync(cwd + '/site/archive.zip');
         }
+
+        helpers.deleteDirRecursively(cwd + '/site');
+
+        if (!fs.existsSync(cwd + '/site')) {
+            fs.mkdirSync(cwd + '/site');
+        }
+
+        let branch = params.branch || config.espocrm.branch;
+
+        if (config.espocrm.repository.indexOf('https://github.com') === 0) {
+            let repository = config.espocrm.repository;
+
+            if (repository.slice(-4) === '.git') {
+                repository = repository.slice(0, repository.length - 4);
+            }
+
+            if (repository.slice(-1) !== '/') {
+                repository += '/';
+            }
+
+            let archiveUrl = repository + 'archive/' + branch + '.zip';
+
+            console.log('  Downloading EspoCRM archive from Github...');
+
+            fetch(archiveUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Unexpected response ${response.statusText}.`);
+                    }
+
+                    return response.body;
+                })
+                .then(body => {
+                    const streamPipeline = promisify(pipeline);
+
+                    return streamPipeline(body, fs.createWriteStream(cwd + '/site/archive.zip'));
+                })
+                .then(() => {
+                    console.log('  Unzipping...');
+
+                    const archive = new AdmZip(cwd + '/site/archive.zip');
+
+                    archive.extractAllTo(cwd + '/site', true, true);
+
+                    fs.unlinkSync(cwd + '/site/archive.zip');
+
+                    helpers
+                        .moveDir(
+                            cwd + '/site/espocrm-' + branch.replace('/', '-'),
+                            cwd + '/site'
+                        )
+                        .then(() => resolve());
+                });
+        }
+        else {
+            throw new Error();
+        }
+    });
+}
+
+function fetchEspoLocal(params) {
+    params = params || {};
+
+    return new Promise((resolve) => {
+        let branch = params.branch || config.espocrm.branch;
+
+        let archivePath = cwd + '/archive/archive-' + branch + '.zip';
+        if (!fs.existsSync(archivePath)) {
+            console.log("ERROR: Could not locate " + archivePath)
+            fail();
+        }
+
+        console.log('Extracting the existing archive...');
+        console.log('  File: ' + archivePath);
+
+        helpers.deleteDirRecursively(cwd + '/site');
+        if (!fs.existsSync(cwd + '/site')) {
+            fs.mkdirSync(cwd + '/site');
+        }
+
+        const archive = new AdmZip(archivePath);
+        archive.extractAllTo(cwd + '/site', true, true);
+
+        helpers
+            .moveDir(
+                cwd + '/site/espocrm-' + branch.replace('/', '-'),
+                cwd + '/site'
+            )
+            .then(() => resolve());
     });
 }
 
