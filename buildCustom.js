@@ -789,15 +789,17 @@ function updateArchive (params) {
 }
 
 function databaseReset() {
-  const charset = config.database.charset;
-  const dbname = config.database.dbname;
-  const user = config.database.user;
+  let cmd = "export MYSQL_PWD=" + config.database.password;
+  cmd += "; mysql";
+  cmd += " --user=" + config.database.user;
+  cmd += " --host=" + config.database.host;
+  cmd += " --port=" + config.database.port;
 
   console.log('Resetting the database...');
 
   return new Promise(resolve => {
-      cp.execSync(`mysql -u ${user} -e 'DROP DATABASE IF EXISTS \`${dbname}\`'`);
-      cp.execSync(`mysql -u ${user} -e 'CREATE SCHEMA \`${dbname}\` DEFAULT CHARACTER SET ${charset}'`);
+      cp.execSync(`${cmd} -e 'DROP DATABASE IF EXISTS \`${config.database.dbname}\`'`);
+      cp.execSync(`${cmd} -e 'CREATE SCHEMA \`${config.database.dbname}\` DEFAULT CHARACTER SET ${config.database.charset}'`);
 
       resolve();
   })
