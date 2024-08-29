@@ -793,7 +793,8 @@ function databaseReset() {
   cmd += "; mysql";
   cmd += " --user=" + config.database.user;
   cmd += " --host=" + config.database.host;
-  cmd += " --port=" + config.database.port;
+  if (config.database.port)
+      cmd += " --port=" + config.database.port;
 
   console.log('Resetting the database...');
 
