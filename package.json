@@ -1,13 +1,13 @@
 {
-  "name": "espo-extension-tools",
-  "version": "0.1.5",
-  "description": "Tools for EspoCRM extension development.",
+  "name": "espocrm-extension-tools-custom",
+  "version": "1.0.0",
+  "description": "This repository provides more tools to develop EspoCRM extensions. It is based on the espocrm/extension-tools repository.",
   "main": "build.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "type": "module",
-  "author": "EspoCRM",
+  "author": "Anthony Andriano",
   "license": "MIT",
   "dependencies": {
     "adm-zip": "^0.5.10",
