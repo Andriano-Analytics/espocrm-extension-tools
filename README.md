@@ -23,9 +23,8 @@ The new commandline switches are as follows:
 * `--before-install`             Run only the beforeInstall process for the extension
 * `--copy-to-end`                Run the `all` switch from the `copy` step until the end
 * `--db-reset`                   Create (or drop and recreate) the database schema (only the schema, no tables)
-* `--extension`                  Build the extension for distribution
-* `--rebuild`                    Rebuild Espo's configuration (CLI version of UI->Administration->Rebuild)
 * `--update-archive`             Download and store the latest version of Espo in the given branch for reuse
+* `--local`                      Use with `--all`, `--fetch`, etc. to use a local Espo archive
 
 ### Development Packages in Composer
 The original repository does _not_ allow composer to install development packages. This repository _does_ allow development packages to be installed with composer. For example, `fzaninotto/Faker` allows the PHP scripts to generate fake data, which is helpful for testing. However, `fzaninotto/Faker` most likely should not be installed by the extension on a production system. To add development dependencies, add the following to the `composer.json` file in your module's code:
