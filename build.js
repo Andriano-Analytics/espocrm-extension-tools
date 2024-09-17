@@ -348,9 +348,13 @@ function buildEspo() {
 
     cp.execSync("npm ci", {cwd: cwd + '/site', stdio: ['ignore', 'ignore', 'pipe']});
 
+    console.log('  Composer install...');
+
+    cp.execSync("composer install", {cwd: cwd + '/site', stdio: ['ignore', 'ignore', 'pipe']});
+
     console.log('  Building...');
 
-    cp.execSync("grunt", {cwd: cwd + '/site', stdio: ['ignore', 'ignore', 'pipe']});
+    cp.execSync("grunt internal", {cwd: cwd + '/site', stdio: ['ignore', 'ignore', 'pipe']});
 }
 
 function createConfig() {
@@ -631,6 +635,8 @@ function buildExtension(hook) {
 
                 if (extensionParams.bundled) {
                     fs.copySync(cwd + '/build/assets/lib', cwd + `/build/tmp/files/client/custom/modules/${mod}/lib`);
+
+                    helpers.deleteDirRecursively(`${cwd}/build/tmp/files/client/custom/modules/${mod}/src`);
                 }
 
                 internalComposerBuildExtension();
