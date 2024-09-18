@@ -9,7 +9,7 @@ import AdmZip from 'adm-zip';
 import helpers from './helpers.js';
 import {createRequire} from 'module';
 import {Transpiler, Bundler, TemplateBundler} from 'espo-frontend-build-tools';
-import {minifiy} from 'terser';
+import {minify} from 'terser';
 
 const require = createRequire(import.meta.url);
 
