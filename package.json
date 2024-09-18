@@ -1,6 +1,6 @@
 {
   "name": "espocrm-extension-tools-custom",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "This repository provides more tools to develop EspoCRM extensions. It is based on the espocrm/extension-tools repository.",
   "main": "build.js",
   "scripts": {
@@ -15,6 +15,7 @@
     "espo-frontend-build-tools": "github:espocrm/frontend-build-tools#0.0.3",
     "fs-extra": "^9.0.0",
     "mv": "^2.1.1",
-    "node-fetch": "^3.3.1"
+    "node-fetch": "^3.3.1",
+    "terser": "^5.33.0"
   }
 }
