@@ -18,6 +18,7 @@ The original commandline switches are as follows:
 * `--extension`
 * `--fetch`
 * `--rebuild`
+* `--prepare-test`
 
 The new commandline switches are as follows:
 * `--before-install`             Run only the beforeInstall process for the extension
