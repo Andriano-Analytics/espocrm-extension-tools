@@ -191,10 +191,18 @@ function buildGeneral(options = {}) {
         return;
     }
 
+    if (helpers.hasAnyProcessParam()) {
+        console.log("Unknown parameter.");
+
+        process.exit(1);
+
+        return;
+    }
+
     const flags = [
-        ['after-install', 'run the After Install scripts (including dev)'],
+        ['after-install', 'run the After Install scripts (includes dev scripts)'],
         ['all', 'build all'],
-        ['before-install', 'run the Before Install scripts (including dev)'],
+        ['before-install', 'run the Before Install scripts (includes dev scripts)'],
         ['composer-install', 'run `composer install` for the module (includes dev packages)'],
         ['copy', 'copy source files to the `site` directory'],
         ['copy-to-end', 'run the sections from --all starting at --copy'],
@@ -203,6 +211,7 @@ function buildGeneral(options = {}) {
         ['fetch', 'download EspoCRM from Github'],
         ['local', 'use the local archive of EspoCRM instead of downloading it'],
         ['rebuild', 'run rebuild'],
+        ['prepare-test', 'fetches Espo instance and runs composer'],
         ['update-archive', 'download EspoCRM from Github to a local archive'],
     ]
 
