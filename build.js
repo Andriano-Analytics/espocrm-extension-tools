@@ -146,7 +146,15 @@ function buildGeneral(options = {}) {
 
         file = file.replaceAll('\\', '/');
 
-        if (!file.startsWith('src/files')) {
+        if (file.startsWith('tests/')) {
+            copyFileInTests(file);
+
+            console.log('Done');
+
+            return;
+        }
+
+        if (!file.startsWith('src/files/')) {
             console.error('File should be in `src/files` dir.');
 
             return;
@@ -450,6 +458,20 @@ function copyFile(file) {
 
         fs.copySync(`${cwd}/src/files/${file}`, `${cwd}/site/${file}`);
     });
+}
+
+function copyFileInTests(file) {
+    if (!file.startsWith('tests/')) {
+        return;
+    }
+
+    if (!fs.existsSync(`${cwd}/${file}`)) {
+        return;
+    }
+
+    console.log('  Copying test file...');
+
+    fs.copySync(`${cwd}/${file}`, `${cwd}/site/${file}`);
 }
 
 async function copyExtension() {
