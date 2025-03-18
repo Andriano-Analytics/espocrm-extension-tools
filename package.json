@@ -1,6 +1,6 @@
 {
   "name": "espocrm-extension-tools-custom",
-  "version": "1.2.4",
+  "version": "1.2.6",
   "description": "This repository provides more tools to develop EspoCRM extensions. It is based on the espocrm/extension-tools repository.",
   "main": "build.js",
   "scripts": {
